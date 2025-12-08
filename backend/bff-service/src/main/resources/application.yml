@@ -1,0 +1,26 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${OIDC_CLIENT_ID:kanban-bff}
+            client-secret: ${OIDC_CLIENT_SECRET:bff-secret}
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8085/realms/kanban-realm}
+  main:
+    web-application-type: servlet
+
+app:
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:4200}
+  services:
+    board-url: ${BOARD_SERVICE_URL:http://localhost:8082}
+    task-url: ${TASK_SERVICE_URL:http://localhost:8083}
+    user-url: ${USER_SERVICE_URL:http://localhost:8084}
