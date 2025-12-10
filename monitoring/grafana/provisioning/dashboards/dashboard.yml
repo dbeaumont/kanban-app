@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: Kanban Dashboards
+    type: file
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

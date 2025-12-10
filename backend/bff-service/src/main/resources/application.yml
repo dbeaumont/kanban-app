@@ -1,5 +1,13 @@
 server:
   port: ${SERVER_PORT:8081}
+  servlet:
+    session:
+      cookie:
+        # Avoid clashing with Keycloak's own JSESSIONID cookie on localhost.
+        name: BFFSESSIONID
+        # Use Lax so the session survives the Keycloak redirect on localhost without requiring HTTPS.
+        same-site: lax
+        secure: false
 
 spring:
   security:
@@ -14,13 +22,24 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           keycloak:
-            issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8085/realms/kanban-realm}
+            # Use external auth endpoint for browser redirects, internal endpoints for back-channel
+            authorization-uri: ${OIDC_AUTH_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/auth}
+            # Default to localhost for local dev; docker-compose overrides to keycloak service name
+            token-uri: ${OIDC_TOKEN_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/token}
+            user-info-uri: ${OIDC_USERINFO_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/userinfo}
+            jwk-set-uri: ${OIDC_JWKS_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/certs}
   main:
     web-application-type: servlet
 
 app:
-  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:4200}
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:8080}
   services:
     board-url: ${BOARD_SERVICE_URL:http://localhost:8082}
     task-url: ${TASK_SERVICE_URL:http://localhost:8083}
     user-url: ${USER_SERVICE_URL:http://localhost:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus

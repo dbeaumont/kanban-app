@@ -1,6 +1,7 @@
 {
   "realm": "kanban-realm",
   "enabled": true,
+  "sslRequired": "NONE",
   "clients": [
     {
       "clientId": "kanban-frontend",
@@ -13,7 +14,7 @@
       "clientId": "kanban-bff",
       "secret": "bff-secret",
       "serviceAccountsEnabled": true,
-      "redirectUris": ["http://localhost:8081/*"],
+      "redirectUris": ["http://localhost:8081/*", "http://bff-service:8081/*"],
       "webOrigins": ["*"],
       "protocol": "openid-connect"
     }

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { environment } from '../environments/environment';
 
 @Component({
   standalone: true,
@@ -13,5 +14,9 @@ import { Component } from '@angular/core';
   styles: [`.panel { max-width:420px; margin:40px auto; padding:20px; border:1px solid #ddd; border-radius:12px; }`]
 })
 export class LoginComponent {
-  login() { window.location.href = '/oauth2/authorization/keycloak'; }
+  login() {
+    // Redirect to BFF OAuth endpoint on the correct host/port
+    const authBase = environment.apiBaseUrl.replace(/\/api$/, '');
+    window.location.href = `${authBase}/oauth2/authorization/keycloak`;
+  }
 }

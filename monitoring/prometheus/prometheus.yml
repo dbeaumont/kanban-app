@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: bff-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["bff-service:8081"]
+  - job_name: board-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["board-service:8082"]
+  - job_name: task-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["task-service:8083"]
+  - job_name: user-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["user-service:8084"]

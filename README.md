@@ -32,19 +32,31 @@ Services:
 - User Service: http://localhost:8084
 - Keycloak: http://localhost:8085 (admin: admin/admin)
 - PostgreSQL: localhost:5432
+- Monitoring: Prometheus http://localhost:9090, Grafana http://localhost:3000 (admin/admin)
 
 ## Endpoints principaux
-| Composant | Endpoint | Notes |
-| --- | --- | --- |
-| BFF | `/api/boards/**` | Proxy vers board-service |
-| BFF | `/api/tasks/**` | Proxy vers task-service |
-| BFF | `/api/users/**` | Proxy vers user-service |
-| BFF | `/actuator/health` | Public |
-| board-service | `/boards`, `/boards/{id}` | CRUD |
-| task-service | `/tasks`, `/tasks/{id}`, `/tasks/{id}/move` | CRUD + move |
-| user-service | `/users`, `/users/{id}`, `/users/me` | CRUD + profil |
-| Actuator (microservices) | `/actuator/health` | Public |
-| Keycloak | `/realms/kanban-realm/.well-known/openid-configuration` | OIDC discovery |
+| Composant | Base URL | Endpoint | Notes |
+| --- | --- | --- | --- |
+| BFF | `http://localhost:8081` | `/api/boards/**` | Proxy vers board-service |
+| BFF | `http://localhost:8081` | `/api/tasks/**` | Proxy vers task-service |
+| BFF | `http://localhost:8081` | `/api/users/**` | Proxy vers user-service |
+| BFF | `http://localhost:8081` | `/actuator/health` | Public |
+| board-service | `http://localhost:8082` | `/boards`, `/boards/{id}` | CRUD |
+| task-service | `http://localhost:8083` | `/tasks`, `/tasks/{id}`, `/tasks/{id}/move` | CRUD + move |
+| user-service | `http://localhost:8084` | `/users`, `/users/{id}`, `/users/me` | CRUD + profil |
+| Actuator (microservices) | `http://localhost:8082-8084` | `/actuator/health` | Public |
+| Actuator metrics | `http://localhost:8081-8084` | `/actuator/prometheus` | Exposé pour Prometheus |
+| Keycloak | `http://localhost:8085` | `/realms/kanban-realm/.well-known/openid-configuration` | OIDC discovery |
+| Grafana | `http://localhost:3000` | `/` | admin/admin, datasource Prometheus provisionnée |
+| Prometheus | `http://localhost:9090` | `/` | Scrape des services sur /actuator/prometheus |
+
+## Supervision (Prometheus / Grafana)
+- Export Prometheus activé sur tous les services Spring Boot via `/actuator/prometheus`.
+- Stack monitoring intégrée au `docker-compose.yml` :
+  - Prometheus: http://localhost:9090 (scrape des microservices).
+  - Grafana: http://localhost:3000 (admin/admin), datasource Prometheus provisionnée.
+  - Dashboard provisionné: “Kanban Platform - Overview” (CPU process/system, heap, threads, HikariCP, RPS/latence HTTP, erreurs, GC, uptime) avec variable `service`.
+- Pour lancer avec la supervision: `docker compose up` (après build des backends pour embarquer le registry Prometheus).
 
 ## OIDC (BFF)
 - Flow: Authorization Code (sans PKCE)

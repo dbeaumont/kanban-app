@@ -27,6 +27,13 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_DB: dev-mem
       KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: edge
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      # Explicitly advertise the public URL to avoid redirects to the internal hostname
+      KC_HOSTNAME_URL: http://localhost:8085
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8085
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
@@ -55,9 +62,14 @@ services:
     environment:
       TZ: Europe/Paris
       SERVER_PORT: 8081
-      OIDC_ISSUER_URI: http://keycloak:8080/realms/kanban-realm
+      # Auth endpoint must be reachable by the user's browser; use localhost-mapped port
+      OIDC_AUTH_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/auth
+      OIDC_TOKEN_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/token
+      OIDC_USERINFO_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/userinfo
+      OIDC_JWKS_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/certs
       OIDC_CLIENT_ID: kanban-bff
       OIDC_CLIENT_SECRET: bff-secret
+      # Business endpoints are accessed by BFF; use docker-mapped hosts & port
       FRONTEND_ORIGIN: http://localhost:8080
       BOARD_SERVICE_URL: http://board-service:8082
       TASK_SERVICE_URL: http://task-service:8083
@@ -141,13 +153,40 @@ services:
     build: ./frontend
     environment:
       TZ: Europe/Paris
-      API_BASE_URL: http://bff-service:8081/api
+      # Use localhost for browser requests; bff-service is not resolvable from the host.
+      API_BASE_URL: http://localhost:8081/api
     ports:
       - "8080:80"
     networks: [kanban-net]
     depends_on:
       bff-service:
         condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    environment:
+      TZ: Europe/Paris
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks: [kanban-net]
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    environment:
+      TZ: Europe/Paris
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks: [kanban-net]
 
 networks:
   kanban-net:
