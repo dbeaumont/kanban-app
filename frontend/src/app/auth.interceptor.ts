@@ -4,10 +4,8 @@ import { environment } from '../environments/environment';
 
 // Ensures cookies flow to the BFF and redirects to login on 401.
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const withCreds = req.clone({
-    withCredentials: true,
-    setHeaders: { 'X-Requested-With': 'XMLHttpRequest' }
-  });
+  // Send cookies for the BFF; avoid forcing X-Requested-With so Spring can issue redirects.
+  const withCreds = req.clone({ withCredentials: true });
   return next(withCreds).pipe(
     catchError(err => {
       if (err instanceof HttpErrorResponse && err.status === 401) {

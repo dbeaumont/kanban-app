@@ -24,29 +24,19 @@ cd frontend && npm install && npm run build
 ```bash
 docker-compose up --build
 ```
-Services:
-- Angular UI: http://localhost:4200 (dev) ou http://localhost:8080 (prod via nginx container)
-- BFF: http://localhost:8081
-- Board Service: http://localhost:8082
-- Task Service: http://localhost:8083
-- User Service: http://localhost:8084
-- Keycloak: http://localhost:8085 (admin: admin/admin)
+Points d’entrée externes:
+- Frontend Angular (via nginx): http://localhost:8080
+- Keycloak: http://localhost-keycloak:8085 (admin: admin/admin)
 - PostgreSQL: localhost:5432
 - Monitoring: Prometheus http://localhost:9090, Grafana http://localhost:3000 (admin/admin)
+Le BFF et les microservices ne sont plus exposés directement: le front appelle uniquement le BFF via `http://localhost:8080/api`.
 
 ## Endpoints principaux
 | Composant | Base URL | Endpoint | Notes |
 | --- | --- | --- | --- |
-| BFF | `http://localhost:8081` | `/api/boards/**` | Proxy vers board-service |
-| BFF | `http://localhost:8081` | `/api/tasks/**` | Proxy vers task-service |
-| BFF | `http://localhost:8081` | `/api/users/**` | Proxy vers user-service |
-| BFF | `http://localhost:8081` | `/actuator/health` | Public |
-| board-service | `http://localhost:8082` | `/boards`, `/boards/{id}` | CRUD |
-| task-service | `http://localhost:8083` | `/tasks`, `/tasks/{id}`, `/tasks/{id}/move` | CRUD + move |
-| user-service | `http://localhost:8084` | `/users`, `/users/{id}`, `/users/me` | CRUD + profil |
-| Actuator (microservices) | `http://localhost:8082-8084` | `/actuator/health` | Public |
-| Actuator metrics | `http://localhost:8081-8084` | `/actuator/prometheus` | Exposé pour Prometheus |
-| Keycloak | `http://localhost:8085` | `/realms/kanban-realm/.well-known/openid-configuration` | OIDC discovery |
+| Frontend | `http://localhost:8080` | `/` | SPA servie par nginx |
+| BFF (via frontend) | `http://localhost:8080/api` | `/boards/**`, `/tasks/**`, `/users/**` | Proxy vers microservices |
+| Keycloak | `http://localhost-keycloak:8085` | `/realms/kanban-realm/.well-known/openid-configuration` | OIDC discovery |
 | Grafana | `http://localhost:3000` | `/` | admin/admin, datasource Prometheus provisionnée |
 | Prometheus | `http://localhost:9090` | `/` | Scrape des services sur /actuator/prometheus |
 
@@ -59,11 +49,11 @@ Services:
 - Pour lancer avec la supervision: `docker compose up` (après build des backends pour embarquer le registry Prometheus).
 
 ## OIDC (BFF)
-- Flow: Authorization Code (sans PKCE)
+- Flow: Authorization Code; PKCE imposé pour le client public, client confidentiel pour le BFF
 - Clients:
-  - `kanban-frontend` (public) pour UI (redirection login/logout via BFF)
-  - `kanban-bff` (confidential) pour back-channel et token exchange
-- Le BFF ajoute le bearer token aux appels microservices via WebClient.
+  - `kanban-frontend` (public, PKCE) pour l’UI
+  - `kanban-bff` (confidential) pour le back-channel et l’échange de token
+- Le BFF gère sa propre session (cookie distinct) et ajoute le bearer token aux appels microservices via WebClient.
 
 ## Bases de données
 - PostgreSQL unique avec 3 schémas: `board_schema`, `task_schema`, `user_schema`.
@@ -72,15 +62,15 @@ Services:
 ## Diagramme (Mermaid)
 ```mermaid
 graph LR
-  AngularFrontend -->|HTTPS| BFF
+  AngularFrontend -->|HTTP| BFF
+  AngularFrontend -->|HTTPS : login user/password | Keycloak
   BFF -->|REST/JSON, Bearer token| BoardService
   BFF -->|REST/JSON, Bearer token| TaskService
   BFF -->|REST/JSON, Bearer token| UserService
+  BFF -->|Back-channel token exchange OIDC auth code flow + PKCE | Keycloak
   BoardService -->|JDBC| PostgreSQL
   TaskService -->|JDBC| PostgreSQL
   UserService -->|JDBC| PostgreSQL
-  BFF -->|OIDC (code flow)| Keycloak
-  AngularFrontend -->|login/logout redirects| Keycloak
 ```
 
 ## Tests

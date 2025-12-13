@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,8 @@ import { RouterOutlet } from '@angular/router';
 })
 export class AppComponent {
   login() {
-    window.location.href = '/login';
+    // Trigger OIDC login via the BFF endpoint proxied by nginx
+    const authBase = environment.apiBaseUrl.replace(/\/api$/, '');
+    window.location.href = `${authBase}/oauth2/authorization/keycloak`;
   }
 }

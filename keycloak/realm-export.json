@@ -6,6 +6,12 @@
     {
       "clientId": "kanban-frontend",
       "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "oauth.pkce.enforced": "true"
+      },
       "redirectUris": ["http://localhost:4200/*", "http://localhost:8080/*"],
       "webOrigins": ["*"],
       "protocol": "openid-connect"
@@ -14,7 +20,7 @@
       "clientId": "kanban-bff",
       "secret": "bff-secret",
       "serviceAccountsEnabled": true,
-      "redirectUris": ["http://localhost:8081/*", "http://bff-service:8081/*"],
+      "redirectUris": ["http://localhost:8080/*", "http://localhost:8081/*", "http://bff-service:8081/*"],
       "webOrigins": ["*"],
       "protocol": "openid-connect"
     }

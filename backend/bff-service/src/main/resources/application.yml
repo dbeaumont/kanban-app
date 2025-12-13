@@ -5,9 +5,11 @@ server:
       cookie:
         # Avoid clashing with Keycloak's own JSESSIONID cookie on localhost.
         name: BFFSESSIONID
-        # Use Lax so the session survives the Keycloak redirect on localhost without requiring HTTPS.
-        same-site: lax
-        secure: false
+        # Defaults are dev-friendly; override in prod (see BFF_SESSION_* env vars)
+        same-site: ${BFF_SESSION_SAMESITE:lax}
+        secure: ${BFF_SESSION_SECURE:false}
+        # Set only in prod to pin the cookie to the BFF (ex: bff.example.com); leave empty for localhost
+        domain: ${BFF_SESSION_DOMAIN:}
 
 spring:
   security:
@@ -19,15 +21,17 @@ spring:
             client-secret: ${OIDC_CLIENT_SECRET:bff-secret}
             scope: openid,profile,email
             authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            # Force external host to avoid redirecting browsers to the internal container hostname
+            redirect-uri: ${OIDC_REDIRECT_URI:http://localhost:8080/login/oauth2/code/{registrationId}}
         provider:
           keycloak:
             # Use external auth endpoint for browser redirects, internal endpoints for back-channel
-            authorization-uri: ${OIDC_AUTH_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/auth}
-            # Default to localhost for local dev; docker-compose overrides to keycloak service name
-            token-uri: ${OIDC_TOKEN_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/token}
-            user-info-uri: ${OIDC_USERINFO_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/userinfo}
-            jwk-set-uri: ${OIDC_JWKS_URI:http://localhost:8085/realms/kanban-realm/protocol/openid-connect/certs}
+            authorization-uri: ${OIDC_AUTH_URI:https://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/auth}
+            # Default to localhost-keycloak for local dev; docker-compose overrides to keycloak service name for back-channel
+            token-uri: ${OIDC_TOKEN_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/token}
+            user-info-uri: ${OIDC_USERINFO_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/userinfo}
+            jwk-set-uri: ${OIDC_JWKS_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/certs}
+            user-name-attribute: preferred_username
   main:
     web-application-type: servlet
 
@@ -43,3 +47,7 @@ management:
     web:
       exposure:
         include: health,prometheus
+
+logging:
+  level:
+    org.springframework.security: DEBUG

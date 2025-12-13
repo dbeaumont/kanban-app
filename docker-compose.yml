@@ -20,26 +20,31 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:23.0.7
-    command: ["start-dev", "--import-realm", "--health-enabled=true"]
+    # Génère un certificat auto-signé pour exposer Keycloak en HTTPS sur localhost-keycloak
+    entrypoint: ["/opt/keycloak/entrypoint.sh"]
     environment:
       TZ: Europe/Paris
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: dev-mem
+      KC_DB: dev-file
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true"
-      KC_PROXY: edge
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      # Explicitly advertise the public URL to avoid redirects to the internal hostname
-      KC_HOSTNAME_URL: http://localhost:8085
-      KC_HOSTNAME_ADMIN_URL: http://localhost:8085
+      KC_PROXY: none
+      KC_STORAGE: jpa
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh
+      - keycloak-data:/opt/keycloak/data
     ports:
-      - "8085:8080"
+      - "8085:8085"
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /health/ready HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q '\"status\".*\"UP\"' <&3'"]
+      # Vérifie le port HTTP interne sans curl, via /dev/tcp (bash)
+      test:
+        - CMD-SHELL
+        - >
+          bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf "GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+          grep -q "\"status\".*\"UP\"" <&3'
       interval: 5s
       timeout: 10s
       start_period: 90s
@@ -62,20 +67,22 @@ services:
     environment:
       TZ: Europe/Paris
       SERVER_PORT: 8081
-      # Auth endpoint must be reachable by the user's browser; use localhost-mapped port
-      OIDC_AUTH_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/auth
-      OIDC_TOKEN_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/token
-      OIDC_USERINFO_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/userinfo
-      OIDC_JWKS_URI: http://localhost:8085/realms/kanban-realm/protocol/openid-connect/certs
+      # Browser redirection vers Keycloak (HTTPS via localhost-keycloak pour Secure cookies)
+      OIDC_AUTH_URI: https://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/auth
+      # Back-channel en HTTP sur le réseau Docker pour éviter de gérer le cert auto-signé côté BFF
+      OIDC_TOKEN_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/token
+      OIDC_USERINFO_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/userinfo
+      OIDC_JWKS_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
       OIDC_CLIENT_ID: kanban-bff
       OIDC_CLIENT_SECRET: bff-secret
+      # Utilise le front nginx comme callback pour le code, il reverse-proxy vers le BFF
+      OIDC_REDIRECT_URI: http://localhost:8080/login/oauth2/code/keycloak
       # Business endpoints are accessed by BFF; use docker-mapped hosts & port
       FRONTEND_ORIGIN: http://localhost:8080
       BOARD_SERVICE_URL: http://board-service:8082
       TASK_SERVICE_URL: http://task-service:8083
       USER_SERVICE_URL: http://user-service:8084
-    ports:
-      - "8081:8081"
+    # BFF reste accessible uniquement depuis le réseau Docker; le frontend reverse proxy les appels
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
       interval: 5s
@@ -96,7 +103,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: http://keycloak:8080/realms/kanban-realm
+      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
     ports: ["8082:8082"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
@@ -118,7 +126,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: http://keycloak:8080/realms/kanban-realm
+      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
     ports: ["8083:8083"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
@@ -140,7 +149,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: http://keycloak:8080/realms/kanban-realm
+      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
     ports: ["8084:8084"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
@@ -148,19 +158,6 @@ services:
       timeout: 5s
       retries: 30
     networks: [kanban-net]
-
-  frontend:
-    build: ./frontend
-    environment:
-      TZ: Europe/Paris
-      # Use localhost for browser requests; bff-service is not resolvable from the host.
-      API_BASE_URL: http://localhost:8081/api
-    ports:
-      - "8080:80"
-    networks: [kanban-net]
-    depends_on:
-      bff-service:
-        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
@@ -188,8 +185,21 @@ services:
       - prometheus
     networks: [kanban-net]
 
+  frontend:
+    build: ./frontend
+    environment:
+      TZ: Europe/Paris
+      API_BASE_URL: http://localhost:8081/api
+    ports:
+      - "8080:80"
+    networks: [kanban-net]
+    depends_on:
+      bff-service:
+        condition: service_healthy
+
 networks:
   kanban-net:
 
 volumes:
   pgdata:
+  keycloak-data:
