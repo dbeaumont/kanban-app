@@ -10,13 +10,27 @@
 - Conteneurisation complète via Docker Compose
 
 ## Prérequis
+
+Outils:
 - Java 25, Maven 3.9+
 - Node 20+, npm 10+
 - Docker / Docker Compose
 
-## Lancer avec Docker Compose
+Configuration:
+- ajouter dans /etc/hosts 
+```bash
+127.0.0.1   localhost-keycloak
+```
+
+## Lancer 
+
+Avec Docker Compose:
 ```bash
 docker-compose up --build
+```
+Avec Make:
+```bash
+make all
 ```
 Points d’entrée externes:
 - Frontend Angular (via nginx): http://localhost:8080

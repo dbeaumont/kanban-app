@@ -1,6 +1,9 @@
 COMPOSE ?= docker compose
 
-.PHONY: up build down logs restart clean prune
+.PHONY: env up build rebuild down all logs restart clean ps prune
+
+env:
+	cp env.template .env
 
 up:
 	$(COMPOSE) up --build -d
@@ -13,6 +16,8 @@ rebuild:
 
 down:
 	$(COMPOSE) down
+
+all: env clean rebuild up
 
 logs:
 	$(COMPOSE) logs -f

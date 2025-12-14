@@ -68,11 +68,11 @@ services:
       TZ: Europe/Paris
       SERVER_PORT: 8081
       # Browser redirection vers Keycloak (HTTPS via localhost-keycloak pour Secure cookies)
-      OIDC_AUTH_URI: https://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/auth
+      OIDC_AUTH_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
       # Back-channel en HTTP sur le réseau Docker pour éviter de gérer le cert auto-signé côté BFF
-      OIDC_TOKEN_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/token
-      OIDC_USERINFO_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/userinfo
-      OIDC_JWKS_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
+      OIDC_TOKEN_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      OIDC_USERINFO_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
+      OIDC_JWKS_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
       OIDC_CLIENT_ID: kanban-bff
       OIDC_CLIENT_SECRET: bff-secret
       # Utilise le front nginx comme callback pour le code, il reverse-proxy vers le BFF
@@ -103,8 +103,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
+      OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
     ports: ["8082:8082"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
@@ -126,8 +126,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
+      OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
     ports: ["8083:8083"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
@@ -149,8 +149,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kanban
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
-      OIDC_ISSUER_URI: https://localhost-keycloak:8085/realms/kanban-realm
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/kanban-realm/protocol/openid-connect/certs
+      OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
     ports: ["8084:8084"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
