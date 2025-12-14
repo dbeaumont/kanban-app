@@ -14,4 +14,6 @@ FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=build /app/user-service/target/user-service-1.0.0.jar app.jar
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY user-service/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]

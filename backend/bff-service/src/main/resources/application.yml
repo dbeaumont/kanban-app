@@ -25,12 +25,7 @@ spring:
             redirect-uri: ${OIDC_REDIRECT_URI:http://localhost:8080/login/oauth2/code/{registrationId}}
         provider:
           keycloak:
-            # Use external auth endpoint for browser redirects, internal endpoints for back-channel
-            authorization-uri: ${OIDC_AUTH_URI:https://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/auth}
-            # Default to localhost-keycloak for local dev; docker-compose overrides to keycloak service name for back-channel
-            token-uri: ${OIDC_TOKEN_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/token}
-            user-info-uri: ${OIDC_USERINFO_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/userinfo}
-            jwk-set-uri: ${OIDC_JWKS_URI:http://localhost-keycloak:8085/realms/kanban-realm/protocol/openid-connect/certs}
+            issuer-uri: ${OIDC_ISSUER_URI:https://localhost-keycloak:8085/realms/kanban-realm}
             user-name-attribute: preferred_username
   main:
     web-application-type: servlet

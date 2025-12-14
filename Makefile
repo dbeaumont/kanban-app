@@ -6,7 +6,7 @@ env:
 	cp env.template .env
 
 up:
-	$(COMPOSE) up --build -d
+	$(COMPOSE) up --build -d --force-recreate
 
 build:
 	$(COMPOSE) build

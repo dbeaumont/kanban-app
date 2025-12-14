@@ -1,23 +1,15 @@
-#!/bin/sh
-set -e
+#!/usr/bin/env sh
+set -Eeuo pipefail
+set -x
 
 CERT_DIR=${CERT_DIR:-/opt/keycloak/certs}
 KEYSTORE_FILE="$CERT_DIR/keystore.p12"
 KEYSTORE_PASS=${KEYSTORE_PASS:-changeit}
 
 mkdir -p "$CERT_DIR"
-
-# Generate a self-signed cert with keytool (avoids needing openssl in the image)
 if [ ! -f "$KEYSTORE_FILE" ]; then
-  keytool -genkeypair \
-    -alias localhost-keycloak \
-    -keyalg RSA \
-    -storetype PKCS12 \
-    -keystore "$KEYSTORE_FILE" \
-    -storepass "$KEYSTORE_PASS" \
-    -keypass "$KEYSTORE_PASS" \
-    -dname "CN=localhost-keycloak" \
-    -validity 365
+  echo "Keystore not found at $KEYSTORE_FILE. Ensure keycloak-certgen service ran successfully." >&2
+  exit 1
 fi
 
 exec /opt/keycloak/bin/kc.sh start-dev \

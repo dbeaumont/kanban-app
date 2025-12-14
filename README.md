@@ -26,7 +26,8 @@ Configuration:
 
 Avec Docker Compose:
 ```bash
-docker-compose up --build
+cp env.template .env
+docker compose up --build
 ```
 Avec Make:
 ```bash
@@ -64,6 +65,7 @@ Le BFF et les microservices ne sont plus exposés directement: le front appelle 
 - BFF: endpoints back-channel en HTTP interne vers Keycloak (`keycloak:8080`), redirections navigateur vers `https://localhost-keycloak:8085`; callback OAuth: `http://localhost:8080/login/oauth2/code/keycloak`.
 - Sessions: Keycloak gère ses cookies sur `localhost-keycloak`; le BFF gère un cookie `BFFSESSIONID` sur `localhost` (config overridable via `BFF_SESSION_*`).
 - L’utilisateur doit accepter le certificat auto-signé de `https://localhost-keycloak:8085` lors du premier login.
+- Accès Keycloak en HTTPS: un conteneur dédié (`keycloak-certgen`) génère un certificat auto-signé et un keystore partagés via volume; les conteneurs backend importent ce certificat dans leurs truststores avant de démarrer.
 
 ## Bases de données
 - PostgreSQL unique avec 3 schémas: `board_schema`, `task_schema`, `user_schema`.
@@ -72,16 +74,68 @@ Le BFF et les microservices ne sont plus exposés directement: le front appelle 
 ## Diagramme (Mermaid)
 ```mermaid
 graph LR
+  %% ===== FRONTEND =====
+  AngularFrontend[Angular Frontend]
+  
+  %% ===== BFF =====
+  BFF[BFF API Gateway]
+
+  %% ===== MICROSERVICES =====
+  BoardService[Board Service]
+  TaskService[Task Service]
+  UserService[User Service]
+
+  %% ===== DATABASE =====
+  PostgreSQL[(PostgreSQL)]
+
+  %% ===== IDENTITY PROVIDER =====
+  subgraph IDP["Identity Provider (OIDC)"]
+    Keycloak[Keycloak]
+  end
+
+  %% ===== FLOWS =====
   AngularFrontend -->|HTTP| BFF
-  AngularFrontend -->|HTTPS : login user/password | Keycloak
-  BFF -->|REST/JSON, Bearer token| BoardService
-  BFF -->|REST/JSON, Bearer token| TaskService
-  BFF -->|REST/JSON, Bearer token| UserService
-  BFF -->|Back-channel token exchange OIDC auth code flow + PKCE | Keycloak
+  AngularFrontend -->|HTTPS login user/password| Keycloak
+
+  BFF -->|REST/JSON + Bearer Token| BoardService
+  BFF -->|REST/JSON + Bearer Token| TaskService
+  BFF -->|REST/JSON + Bearer Token| UserService
+
+  BFF -->|OIDC Auth Code Flow + PKCE Back-channel| Keycloak
+
+  BoardService -->|JWKS validation| Keycloak
+  TaskService -->|JWKS validation| Keycloak
+  UserService -->|JWKS validation| Keycloak
+
   BoardService -->|JDBC| PostgreSQL
   TaskService -->|JDBC| PostgreSQL
   UserService -->|JDBC| PostgreSQL
-```
+
+  %% ===== STYLES =====
+  %% Frontend
+  style AngularFrontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+
+  %% BFF
+  style BFF fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+
+  %% Microservices
+  style BoardService fill:#f3e5f5,stroke:#6a1b9a
+  style TaskService fill:#f3e5f5,stroke:#6a1b9a
+  style UserService fill:#f3e5f5,stroke:#6a1b9a
+
+  %% Database
+  style PostgreSQL fill:#eceff1,stroke:#37474f,stroke-width:2px
+
+  %% Keycloak
+  style Keycloak fill:#b6e3b6,stroke:#2e7d32,stroke-width:3px
+
+  %% ===== SECURITY FLOWS (GREEN) =====
+  linkStyle 1 stroke:#2e7d32,stroke-width:2px
+  linkStyle 5 stroke:#2e7d32,stroke-width:2px
+  linkStyle 6 stroke:#2e7d32,stroke-width:2px
+  linkStyle 7 stroke:#2e7d32,stroke-width:2px
+  linkStyle 8 stroke:#2e7d32,stroke-width:2px
+  ```
 
 ## Tests
 - Unitaires: JUnit 5, AssertJ, Mockito
@@ -101,4 +155,3 @@ mvn -pl user-service spring-boot:run
 cd frontend && npm start
 ```
 Configurer les variables d’environnement (voir `docker-compose.yml` et `application.yml` de chaque module).
-

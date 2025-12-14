@@ -1,4 +1,18 @@
 services:
+  keycloak-certgen:
+    image: eclipse-temurin:25-jre
+    entrypoint: ["/bin/sh", "-c", "/certgen.sh"]
+#    entrypoint: ["/bin/sh", "-c", "/certgen.sh && tail -f /dev/null"]
+    environment:
+      KEYSTORE_PASS: ${KEYSTORE_PASS:-changeit}
+      KEYSTORE_ALIAS: localhost-keycloak
+      CERT_DIR: /certs
+    volumes:
+      - keycloak-certs:/certs
+      - ./keycloak/certgen.sh:/certgen.sh:ro
+    restart: "no"
+    networks: [kanban-net]
+
   postgres:
     image: postgres:16
     environment:
@@ -20,8 +34,11 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:23.0.7
-    # Génère un certificat auto-signé pour exposer Keycloak en HTTPS sur localhost-keycloak
+    # Utilise le keystore généré par keycloak-certgen pour exposer Keycloak en HTTPS sur localhost-keycloak
     entrypoint: ["/opt/keycloak/entrypoint.sh"]
+    depends_on:
+      keycloak-certgen:
+        condition: service_completed_successfully
     environment:
       TZ: Europe/Paris
       KEYCLOAK_ADMIN: admin
@@ -35,6 +52,7 @@ services:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
       - ./keycloak/entrypoint.sh:/opt/keycloak/entrypoint.sh
       - keycloak-data:/opt/keycloak/data
+      - keycloak-certs:/opt/keycloak/certs
     ports:
       - "8085:8085"
     healthcheck:
@@ -67,22 +85,22 @@ services:
     environment:
       TZ: Europe/Paris
       SERVER_PORT: 8081
-      # Browser redirection vers Keycloak (HTTPS via localhost-keycloak pour Secure cookies)
-      OIDC_AUTH_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-      # Back-channel en HTTP sur le réseau Docker pour éviter de gérer le cert auto-signé côté BFF
-      OIDC_TOKEN_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      OIDC_USERINFO_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
-      OIDC_JWKS_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
       OIDC_CLIENT_ID: kanban-bff
       OIDC_CLIENT_SECRET: bff-secret
       # Utilise le front nginx comme callback pour le code, il reverse-proxy vers le BFF
       OIDC_REDIRECT_URI: http://localhost:8080/login/oauth2/code/keycloak
+      JAVA_TRUSTSTORE_PASSWORD: ${JAVA_TRUSTSTORE_PASSWORD:-changeit}
       # Business endpoints are accessed by BFF; use docker-mapped hosts & port
       FRONTEND_ORIGIN: http://localhost:8080
       BOARD_SERVICE_URL: http://board-service:8082
       TASK_SERVICE_URL: http://task-service:8083
       USER_SERVICE_URL: http://user-service:8084
     # BFF reste accessible uniquement depuis le réseau Docker; le frontend reverse proxy les appels
+    volumes:
+      - keycloak-certs:/opt/keycloak-certs:ro
+    extra_hosts:
+      - "localhost-keycloak:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
       interval: 5s
@@ -95,6 +113,8 @@ services:
       context: ./backend
       dockerfile: ./board-service/Dockerfile
     depends_on:
+      keycloak:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     environment:
@@ -104,13 +124,17 @@ services:
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
       OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      JAVA_TRUSTSTORE_PASSWORD: ${JAVA_TRUSTSTORE_PASSWORD:-changeit}
     ports: ["8082:8082"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
       interval: 5s
       timeout: 5s
       retries: 30
+    volumes:
+      - keycloak-certs:/opt/keycloak-certs:ro
+    extra_hosts:
+      - "localhost-keycloak:host-gateway"
     networks: [kanban-net]
 
   task-service:
@@ -118,6 +142,8 @@ services:
       context: ./backend
       dockerfile: ./task-service/Dockerfile
     depends_on:
+      keycloak:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     environment:
@@ -127,13 +153,17 @@ services:
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
       OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      JAVA_TRUSTSTORE_PASSWORD: ${JAVA_TRUSTSTORE_PASSWORD:-changeit}
     ports: ["8083:8083"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
       interval: 5s
       timeout: 5s
       retries: 30
+    volumes:
+      - keycloak-certs:/opt/keycloak-certs:ro
+    extra_hosts:
+      - "localhost-keycloak:host-gateway"
     networks: [kanban-net]
 
   user-service:
@@ -141,6 +171,8 @@ services:
       context: ./backend
       dockerfile: ./user-service/Dockerfile
     depends_on:
+      keycloak:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     environment:
@@ -150,13 +182,17 @@ services:
       SPRING_DATASOURCE_USERNAME: kanban
       SPRING_DATASOURCE_PASSWORD: kanban
       OIDC_ISSUER_URI: ${KEYCLOAK_EXTERNAL_URL}/realms/${KEYCLOAK_REALM}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      JAVA_TRUSTSTORE_PASSWORD: ${JAVA_TRUSTSTORE_PASSWORD:-changeit}
     ports: ["8084:8084"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/ready"]
       interval: 5s
       timeout: 5s
       retries: 30
+    volumes:
+      - keycloak-certs:/opt/keycloak-certs:ro
+    extra_hosts:
+      - "localhost-keycloak:host-gateway"
     networks: [kanban-net]
 
   prometheus:
@@ -203,3 +239,4 @@ networks:
 volumes:
   pgdata:
   keycloak-data:
+  keycloak-certs:
