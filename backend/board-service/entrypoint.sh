@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -Eeuo
+set -eu
 set -x
 
 CERT_FILE=${KEYCLOAK_CERT_FILE:-/opt/keycloak-certs/localhost-keycloak.crt}
