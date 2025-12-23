@@ -114,6 +114,7 @@ graph LR
 - Callback OAuth : `http://localhost:8080/login/oauth2/code/keycloak`.
 - Cookies : Keycloak sur `localhost-keycloak`, BFF sur `localhost` (`BFFSESSIONID`). Accepter le cert auto-signé lors du premier login.
 - Un conteneur `keycloak-certgen` génère le keystore partagé; les backends importent ce cert au démarrage.
+- Pourquoi PKCE ? Le frontend est un client public (Angular dans le navigateur, pas de secret stockable). PKCE empêche l’échange du code par un attaquant qui intercepterait la redirection. Le BFF est, lui, un client confidentiel (secret en backend) qui échange le code contre les tokens.
 
 ## Bases de données
 - PostgreSQL unique avec schémas `board_schema`, `task_schema`, `user_schema`.
