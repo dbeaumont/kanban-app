@@ -20,7 +20,7 @@ Points d’entrée :
 - PostgreSQL : localhost:5432 (user/pass/db : kanban)
 Le front appelle uniquement le BFF via `http://localhost:8080/api`; les microservices ne sont pas exposés directement.
 
-## Dév local sans Docker
+## Dev local sans Docker
 Prérequis : Java 25 + Maven 3.9+, Node 20+/npm 10+.
 ```bash
 # BFF
@@ -42,6 +42,72 @@ Configurer les variables d’environnement comme dans `.env` (issuer Keycloak, s
 | Keycloak | `https://localhost-keycloak:8085` | Realm `kanban-realm`, cert auto-signé |
 | Grafana | `http://localhost:3000` | Dashboard “Kanban Platform - Overview” |
 | Prometheus | `http://localhost:9090` | Scrape `/actuator/prometheus` des services |
+
+## Diagramme (Mermaid)
+```mermaid
+graph LR
+  %% ===== FRONTEND =====
+  AngularFrontend[Angular Frontend]
+  
+  %% ===== BFF =====
+  BFF[BFF API Gateway]
+
+  %% ===== MICROSERVICES =====
+  BoardService[Board Service]
+  TaskService[Task Service]
+  UserService[User Service]
+
+  %% ===== DATABASE =====
+  PostgreSQL[(PostgreSQL)]
+
+  %% ===== IDENTITY PROVIDER =====
+  subgraph IDP["Identity Provider (OIDC)"]
+    Keycloak[Keycloak]
+  end
+
+  %% ===== FLOWS =====
+  AngularFrontend -->|HTTP| BFF
+  AngularFrontend -->|HTTPS login user/password| Keycloak
+
+  BFF -->|REST/JSON + Bearer Token| BoardService
+  BFF -->|REST/JSON + Bearer Token| TaskService
+  BFF -->|REST/JSON + Bearer Token| UserService
+
+  BFF -->|OIDC Auth Code Flow + PKCE Back-channel| Keycloak
+
+  BoardService -->|JWKS validation| Keycloak
+  TaskService -->|JWKS validation| Keycloak
+  UserService -->|JWKS validation| Keycloak
+
+  BoardService -->|JDBC| PostgreSQL
+  TaskService -->|JDBC| PostgreSQL
+  UserService -->|JDBC| PostgreSQL
+
+  %% ===== STYLES =====
+  %% Frontend
+  style AngularFrontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+
+  %% BFF
+  style BFF fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+
+  %% Microservices
+  style BoardService fill:#f3e5f5,stroke:#6a1b9a
+  style TaskService fill:#f3e5f5,stroke:#6a1b9a
+  style UserService fill:#f3e5f5,stroke:#6a1b9a
+
+  %% Database
+  style PostgreSQL fill:#eceff1,stroke:#37474f,stroke-width:2px
+
+  %% Keycloak
+  style Keycloak fill:#b6e3b6,stroke:#2e7d32,stroke-width:3px
+
+  %% ===== SECURITY FLOWS (GREEN) =====
+  linkStyle 1 stroke:#2e7d32,stroke-width:2px
+  linkStyle 5 stroke:#2e7d32,stroke-width:2px
+  linkStyle 6 stroke:#2e7d32,stroke-width:2px
+  linkStyle 7 stroke:#2e7d32,stroke-width:2px
+  linkStyle 8 stroke:#2e7d32,stroke-width:2px
+```
 
 ## OIDC (BFF)
 - Flow Authorization Code, PKCE pour le client public (`kanban-frontend`), client confidentiel (`kanban-bff`) pour l’échange de token.
