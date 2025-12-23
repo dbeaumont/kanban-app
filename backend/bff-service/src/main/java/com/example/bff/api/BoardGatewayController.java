@@ -26,7 +26,7 @@ public class BoardGatewayController {
     }
 
     @GetMapping("/{id}")
-    public Mono<BoardDto> findOne(@PathVariable String id) {
+    public Mono<BoardDto> findOne(@PathVariable("id") String id) {
         return boardWebClient.get().uri("/boards/{id}", id).retrieve().bodyToMono(BoardDto.class);
     }
 
@@ -36,12 +36,12 @@ public class BoardGatewayController {
     }
 
     @PutMapping("/{id}")
-    public Mono<BoardDto> update(@PathVariable String id, @RequestBody BoardDto dto) {
+    public Mono<BoardDto> update(@PathVariable("id") String id, @RequestBody BoardDto dto) {
         return boardWebClient.put().uri("/boards/{id}", id).bodyValue(dto).retrieve().bodyToMono(BoardDto.class);
     }
 
     @DeleteMapping("/{id}")
-    public Mono<Void> delete(@PathVariable String id) {
+    public Mono<Void> delete(@PathVariable("id") String id) {
         return boardWebClient.delete().uri("/boards/{id}", id).retrieve().bodyToMono(Void.class);
     }
 }

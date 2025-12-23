@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(
                         new ApiAwareAuthenticationEntryPoint("/oauth2/authorization/keycloak")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/login", "/logout",
+                        .requestMatchers("/actuator/health", "/actuator/prometheus", "/login", "/logout",
                                 "/oauth2/authorization/**", "/login/oauth2/**", "/oauth2/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())

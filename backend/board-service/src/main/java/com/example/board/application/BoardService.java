@@ -2,7 +2,9 @@ package com.example.board.application;
 
 import com.example.board.domain.Board;
 import com.example.board.infrastructure.BoardRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +22,8 @@ public class BoardService {
     }
 
     public Board findById(String id) {
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Board not found: " + id));
     }
 
     public Board create(Board board) {

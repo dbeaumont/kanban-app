@@ -8,7 +8,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:kanban}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     properties:
       hibernate:
         default_schema: task_schema
@@ -17,6 +17,7 @@ spring:
     default-schema: task_schema
     create-schemas: true
     enabled: true
+    locations: classpath:db/migration
   security:
     oauth2:
       resourceserver:

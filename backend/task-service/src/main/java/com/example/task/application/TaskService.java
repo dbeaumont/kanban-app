@@ -2,7 +2,9 @@ package com.example.task.application;
 
 import com.example.task.domain.Task;
 import com.example.task.infrastructure.TaskRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,7 +20,10 @@ public class TaskService {
 
     public List<Task> findAll() { return repository.findAll(); }
 
-    public Task findById(String id) { return repository.findById(id).orElseThrow(); }
+    public Task findById(String id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found: " + id));
+    }
 
     public Task create(Task task) {
         task.setId(UUID.randomUUID().toString());

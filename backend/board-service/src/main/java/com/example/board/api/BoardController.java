@@ -21,14 +21,14 @@ public class BoardController {
     public List<Board> all() { return service.findAll(); }
 
     @GetMapping("/{id}")
-    public Board one(@PathVariable String id) { return service.findById(id); }
+    public Board one(@PathVariable("id") String id) { return service.findById(id); }
 
     @PostMapping
     public Board create(@Valid @RequestBody Board board) { return service.create(board); }
 
     @PutMapping("/{id}")
-    public Board update(@PathVariable String id, @Valid @RequestBody Board board) { return service.update(id, board); }
+    public Board update(@PathVariable("id") String id, @Valid @RequestBody Board board) { return service.update(id, board); }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) { service.delete(id); }
+    public void delete(@PathVariable("id") String id) { service.delete(id); }
 }

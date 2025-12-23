@@ -17,13 +17,13 @@ public class TaskController {
 
     @GetMapping public List<Task> all() { return service.findAll(); }
 
-    @GetMapping("/{id}") public Task one(@PathVariable String id) { return service.findById(id); }
+    @GetMapping("/{id}") public Task one(@PathVariable("id") String id) { return service.findById(id); }
 
     @PostMapping public Task create(@RequestBody Task task) { return service.create(task); }
 
-    @PutMapping("/{id}") public Task update(@PathVariable String id, @RequestBody Task task) { return service.update(id, task); }
+    @PutMapping("/{id}") public Task update(@PathVariable("id") String id, @RequestBody Task task) { return service.update(id, task); }
 
-    @DeleteMapping("/{id}") public void delete(@PathVariable String id) { service.delete(id); }
+    @DeleteMapping("/{id}") public void delete(@PathVariable("id") String id) { service.delete(id); }
 
-    @PatchMapping("/{id}/move") public Task move(@PathVariable String id, @RequestParam String columnId) { return service.move(id, columnId); }
+    @PatchMapping("/{id}/move") public Task move(@PathVariable("id") String id, @RequestParam("columnId") String columnId) { return service.move(id, columnId); }
 }

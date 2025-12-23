@@ -19,13 +19,13 @@ public class UserProfileController {
 
     @GetMapping public List<UserProfile> all() { return service.findAll(); }
 
-    @GetMapping("/{id}") public UserProfile one(@PathVariable String id) { return service.findById(id); }
+    @GetMapping("/{id}") public UserProfile one(@PathVariable("id") String id) { return service.findById(id); }
 
     @PostMapping public UserProfile create(@RequestBody UserProfile profile) { return service.create(profile); }
 
-    @PutMapping("/{id}") public UserProfile update(@PathVariable String id, @RequestBody UserProfile profile) { return service.update(id, profile); }
+    @PutMapping("/{id}") public UserProfile update(@PathVariable("id") String id, @RequestBody UserProfile profile) { return service.update(id, profile); }
 
-    @DeleteMapping("/{id}") public void delete(@PathVariable String id) { service.delete(id); }
+    @DeleteMapping("/{id}") public void delete(@PathVariable("id") String id) { service.delete(id); }
 
     @GetMapping("/me")
     public UserProfile me(@AuthenticationPrincipal Jwt jwt) {

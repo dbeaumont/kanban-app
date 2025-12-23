@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -eu pipefail
+set -eu
 set -x
 
 CERT_DIR=${CERT_DIR:-/opt/keycloak/certs}

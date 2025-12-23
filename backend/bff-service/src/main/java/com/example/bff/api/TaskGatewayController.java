@@ -26,7 +26,7 @@ public class TaskGatewayController {
     }
 
     @GetMapping("/{id}")
-    public Mono<TaskDto> findOne(@PathVariable String id) {
+    public Mono<TaskDto> findOne(@PathVariable("id") String id) {
         return taskWebClient.get().uri("/tasks/{id}", id).retrieve().bodyToMono(TaskDto.class);
     }
 
@@ -36,17 +36,17 @@ public class TaskGatewayController {
     }
 
     @PutMapping("/{id}")
-    public Mono<TaskDto> update(@PathVariable String id, @RequestBody TaskDto dto) {
+    public Mono<TaskDto> update(@PathVariable("id") String id, @RequestBody TaskDto dto) {
         return taskWebClient.put().uri("/tasks/{id}", id).bodyValue(dto).retrieve().bodyToMono(TaskDto.class);
     }
 
     @DeleteMapping("/{id}")
-    public Mono<Void> delete(@PathVariable String id) {
+    public Mono<Void> delete(@PathVariable("id") String id) {
         return taskWebClient.delete().uri("/tasks/{id}", id).retrieve().bodyToMono(Void.class);
     }
 
     @PatchMapping("/{id}/move")
-    public Mono<TaskDto> move(@PathVariable String id, @RequestParam String columnId) {
+    public Mono<TaskDto> move(@PathVariable("id") String id, @RequestParam("columnId") String columnId) {
         return taskWebClient.patch().uri(uriBuilder -> uriBuilder.path("/tasks/{id}/move").queryParam("columnId", columnId).build(id))
                 .retrieve().bodyToMono(TaskDto.class);
     }

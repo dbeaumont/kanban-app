@@ -1,4 +1,4 @@
-# Analyse du projet Kanban2
+# Analyse du projet Kanban
 
 ## 1. Aperçu de l’architecture du projet
 
@@ -106,7 +106,7 @@ Les microservices définissent :`OIDC_ISSUER_URI` et `SPRING_SECURITY_OAUTH2_RE
 
 ## 5. Conclusion
 
-Le projet Kanban2 montre une architecture bien pensée : séparation claire entre front‑end et back‑end, microservices Spring Boot respectant la Clean Architecture et intégration d’un BFF pour centraliser l’authentification. Les principales améliorations concernent :
+Le projet Kanban montre une architecture bien pensée : séparation claire entre front‑end et back‑end, microservices Spring Boot respectant la Clean Architecture et intégration d’un BFF pour centraliser l’authentification. Les principales améliorations concernent :
 
 1. **Code** : implémenter `equals`/`hashCode` pour les entités, valider les entrées via des DTO dédiés, gérer les exceptions globalement et automatiser le mapping entité/DTO.
 2. **Architecture** : renforcer l’isolation du domaine via des interfaces et injection de dépendances, enrichir les tests (unitaires et intégration), et améliorer la gestion des erreurs côté front.

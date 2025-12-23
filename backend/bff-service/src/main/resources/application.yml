@@ -42,7 +42,12 @@ management:
     web:
       exposure:
         include: health,prometheus
+  endpoint:
+    health:
+      show-components: always
+      show-details: always
 
 logging:
   level:
-    org.springframework.security: DEBUG
+    org.apache.coyote.http11: INFO
+

@@ -8,7 +8,7 @@ import { environment } from '../environments/environment';
   imports: [RouterOutlet],
   template: `
     <header class="topbar">
-      <h1>Kanban2</h1>
+      <h1>Kanban</h1>
       <button class="ghost" (click)="login()">Login</button>
     </header>
     <main class="content">
